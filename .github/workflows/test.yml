@@ -10,4 +10,5 @@ jobs:
     - uses: actions/checkout@master
     - uses: chipsalliance/verible-linter-action@main
       with:
+        fail_on_error: true
         github_token: ${{ secrets.GITHUB_TOKEN }}
