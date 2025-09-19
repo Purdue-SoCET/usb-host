@@ -53,3 +53,6 @@ fusesoc.conf
 # synthesis scripts
 desflow1/
 .vscode/*
+
+# act files
+.artifacts/*
