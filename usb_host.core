@@ -1,0 +1,49 @@
+CAPI=2:
+name: socet:usb:host:0.1.0
+description: USB Host for AFTx series
+
+filesets:
+  rtl:
+    depend:
+      - socet:usb:src
+    file_type: systemVerilogSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: usb_host
+
+  verilator_build:
+    <<: *default
+    default_tool: verilator
+    tools:
+      verilator:
+        verilator_options:
+          - "-Wno-SYMRSVDWORD"
+          - "-Wno-TIMESCALEMOD"
+          - "-Wno-lint"
+          - "--binary"
+          - "--trace"
+          - "--trace-fst"
+          - "--trace-structs"
+
+  lint:
+    <<: *default
+    description: Linting design.
+    default_tool: veriblelint
+    tools:
+      veriblelint:
+        verible_lint_args:
+          - "--autofix=inplace-interactive"
+          - "--rules_config_search"
+
+  format:
+    <<: *default
+    description: Autoformatting design.
+    default_tool: veribleformat
+    tools:
+      veribleformat:
+        verible_format_args:
+          - "--indentation_spaces=4"
+          - "--inplace"

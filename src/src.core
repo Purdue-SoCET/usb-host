@@ -1,0 +1,15 @@
+CAPI=2:
+name: socet:usb:src:0.1.0
+description: Source code for USB Host
+
+filesets:
+  rtl:
+    files:
+      - usb_host.sv
+    file_type: systemVerilogSource
+
+targets:
+  default: &default
+    filesets:
+      - rtl
+    toplevel: usb_host
