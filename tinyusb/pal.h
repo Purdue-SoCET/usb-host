@@ -3,63 +3,57 @@
 
 #include <stdint.h>
 
-/* Use volatile to ensure the compiler does not optimize out hardware accesses. */
 #define __IO volatile
 #define __I  volatile const
-#define __O  volatile
 
-/*
- * USB Host Controller Register Map
- * The structure members must match the hardware offsets exactly.
- */
+/* Bitfield definition for USB_CTRL register */
 typedef struct {
-    __IO uint32_t CTRL;          /* 0x00: Control of USB reset, SOF, and FIFO flush */
-    __I  uint32_t STATUS;        /* 0x04: Line state, Rx error status, and frame time */
-    __O  uint32_t IRQ_ACK;       /* 0x08: Acknowledge IRQ by setting relevant bit */
-    __I  uint32_t IRQ_STS;       /* 0x0c: Interrupt status */
-    __IO uint32_t IRQ_MASK;      /* 0x10: Interrupt mask */
-    __IO uint32_t XFER_DATA;     /* 0x14: Tx payload transfer length */
-    __IO uint32_t XFER_TOKEN;    /* 0x18: Transfer control info (direction, type) */
-    __I  uint32_t RX_STAT;       /* 0x1c: Transfer status (Rx length, error, idle) */
-    __IO uint32_t DATA;          /* 0x20: FIFO Data (WR_DATA for write, RD_DATA for read) */
+    uint32_t enable_sof     : 1;  /* Bit 0: Enable SOF generation */
+    uint32_t phy_opmode     : 2;  /* Bits 1-2: UTMI PHY Output Mode */
+    uint32_t phy_xcvrselect : 2;  /* Bits 3-4: UTMI PHY Transceiver Select */
+    uint32_t phy_termselect : 1;  /* Bit 5: UTMI PHY Termination Select */
+    uint32_t phy_dppulldown : 1;  /* Bit 6: UTMI PHY D+ Pulldown Enable */
+    uint32_t phy_dmpulldown : 1;  /* Bit 7: UTMI PHY D- Pulldown Enable */
+    uint32_t tx_flush       : 1;  /* Bit 8: Flush Tx FIFO */
+    uint32_t reserved       : 23; /* Remaining bits */
+} usb_ctrl_bits_t;
+
+/* Bitfield definition for USB_XFER_TOKEN register */
+typedef struct {
+    uint32_t reserved1      : 5;  /* Bits 0-4 */
+    uint32_t ep_addr        : 4;  /* Bits 5-8: Endpoint address */
+    uint32_t dev_addr       : 7;  /* Bits 9-15: Device address */
+    uint32_t pid_bits       : 8;  /* Bits 16-23: Token PID (SETUP, OUT, IN) */
+    uint32_t reserved2      : 4;  /* Bits 24-27 */
+    uint32_t pid_datax      : 1;  /* Bit 28: DATA1 or DATA0 */
+    uint32_t ack            : 1;  /* Bit 29: Send ACK in response to IN data */
+    uint32_t in_xfer        : 1;  /* Bit 30: IN (1) or OUT (0) */
+    uint32_t start          : 1;  /* Bit 31: Transfer start request */
+} usb_token_bits_t;
+
+/* Main Register Map using Unions  */
+typedef struct {
+    union {
+        __IO uint32_t val;
+        __IO usb_ctrl_bits_t bits;
+    } CTRL;                       /* 0x00 */
+
+    __I  uint32_t STATUS;         /* 0x04 */
+    __IO uint32_t IRQ_ACK;        /* 0x08 */
+    __I  uint32_t IRQ_STS;        /* 0x0C */
+    __IO uint32_t IRQ_MASK;       /* 0x10 */
+    __IO uint32_t XFER_DATA;      /* 0x14 */
+
+    union {
+        __IO uint32_t val;
+        __IO usb_token_bits_t bits;
+    } XFER_TOKEN;                 /* 0x18 */
+
+    __I  uint32_t RX_STAT;        /* 0x1C */
+    __IO uint32_t DATA;           /* 0x20 */
 } USB_Host_Type;
 
-/* Placeholder for the IP base address on your AHB bus. */
-#define USB_HOST_BASE            ((uint32_t)0x00000000) 
-#define USB_HOST                 ((USB_Host_Type *) USB_HOST_BASE)
+#define USB_HOST_BASE   ((uint32_t)0x40001000) 
+#define USB_HOST        ((USB_Host_Type *) USB_HOST_BASE)
 
-/* --- Register Bit Definitions --- */
-
-/* USB_CTRL Bits */
-#define USB_CTRL_TX_FLUSH        (1u << 8)
-#define USB_CTRL_PHY_DMPULLDOWN  (1u << 7)
-#define USB_CTRL_PHY_DPPULLDOWN  (1u << 6)
-#define USB_CTRL_PHY_TERMSELECT  (1u << 5)
-#define USB_CTRL_PHY_XCVR_SEL_M  (0x3u << 3)
-#define USB_CTRL_PHY_OPMODE_M    (0x3u << 1)
-#define USB_CTRL_ENABLE_SOF      (1u << 0)
-
-/* USB_IRQ Bits (ACK, STS, and MASK) */
-#define USB_IRQ_DEVICE_DETECT    (1u << 3)
-#define USB_IRQ_ERR              (1u << 2)
-#define USB_IRQ_DONE             (1u << 1)
-#define USB_IRQ_SOF              (1u << 0)
-
-/* USB_XFER_TOKEN Bits */
-#define USB_XFER_START           (1u << 31)
-#define USB_XFER_IN              (1u << 30)
-#define USB_XFER_ACK             (1u << 29)
-#define USB_XFER_PID_DATAX       (1u << 28)
-#define USB_XFER_PID_BITS_M      (0xFFu << 16)
-#define USB_XFER_DEV_ADDR_M      (0x7Fu << 9)
-#define USB_XFER_EP_ADDR_M       (0xFu << 5)
-
-/* USB_RX_STAT Bits */
-#define USB_RX_STAT_START_PEND   (1u << 31)
-#define USB_RX_STAT_CRC_ERR      (1u << 30)
-#define USB_RX_STAT_RESP_TIMEOUT (1u << 29)
-#define USB_RX_STAT_IDLE         (1u << 28)
-#define USB_RX_STAT_RESP_PID_M   (0xFFu << 16)
-#define USB_RX_STAT_COUNT_M      (0xFFFFu << 0)
-
-#endif /* USB_PAL_H_ */
+#endif
