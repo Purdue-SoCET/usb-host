@@ -25,11 +25,14 @@
  */
 
 #include "tusb_option.h"
+#include "usb_pal.h"
 
 // #if CFG_TUH_ENABLED && CFG_TUSB_MCU == OPT_MCU_NONE
 
 #include "host/hcd.h"
 #include "host/usbh.h"
+
+#include <stdint.h>
 
 //--------------------------------------------------------------------+
 // Controller API
@@ -82,12 +85,30 @@ void hcd_int_handler(uint8_t rhport, bool in_isr)
 {
     (void)rhport;
     (void)in_isr;
+
+    // read IRQ_STS to see what kind of interrupt was fired
+    uint32_t interrupt_status = USB_HOST->IRQ_STS.val;
+
+    // device detected
+    if (interrupt_status & USB_IRQ_DEVICE_DETECT){
+        hcd_event_device_attach(); // tusb helper function to notify upper layers of event
+        USB_HOST->IRQ_ACK.val = USB_IRQ_DEVICE_DETECT // clear interrupt
+
+        // SHOULD WE ENABLE SOF immediately or only when first transfer begins?
+        // USB_HOST->CTRL.bits.enable_sof = 1; // enable SOF packet generation
+    }
+
+    // DONE interrupt (when transfer completed)
+
+    // ERROR interrupt
 }
 
 // Enable USB interrupt
 void hcd_int_enable(uint8_t rhport)
 {
+    // some AFT stuff??
     (void)rhport;
+
 }
 
 // Disable USB interrupt

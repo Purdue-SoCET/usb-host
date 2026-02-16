@@ -99,8 +99,17 @@ typedef struct {
     __IO uint32_t DATA;      /* 0x20 - FIFO access point */
 } USB_Host_Type;
 
-#define USB_HOST_BASE   ((uint32_t)0x40001000) 
+
+
+#define USB_HOST_BASE   ((u`int32_t)0x40001000) 
 #define USB_HOST        ((USB_Host_Type *) USB_HOST_BASE)
+
+/* --- Interrupt Masks --- */
+
+#define USB_IRQ_SOF           (1 << 0)
+#define USB_IRQ_DONE          (1 << 1)
+#define USB_IRQ_ERR           (1 << 2)
+#define USB_IRQ_DEVICE_DETECT (1 << 3)
 
 /* Helper Constants for PID */
 #define USB_PID_SETUP   0x2D
