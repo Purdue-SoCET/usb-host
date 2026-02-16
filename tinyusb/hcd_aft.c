@@ -107,11 +107,17 @@ uint32_t hcd_frame_number(uint8_t rhport)
 // Port API
 //--------------------------------------------------------------------+
 
-// Get the current connect status of roothub port
 bool hcd_port_connect_status(uint8_t rhport)
 {
     (void)rhport;
-    return false;
+
+    // Read the current line state from the hardware status register
+    // linestate bits: 01 = D+ high (Full Speed device), 10 = D- high (Low Speed device)
+    uint32_t line_state = USB_HOST->STATUS.bits.linestate;
+
+    // A non-zero value means the lines are not in Single Ended Zero (SE0) state,
+    // indicating that a device pull-up is present and detected.
+    return (line_state != 0);
 }
 
 // Reset USB bus on the port. Return immediately, bus reset sequence may not be complete.
@@ -119,18 +125,55 @@ bool hcd_port_connect_status(uint8_t rhport)
 void hcd_port_reset(uint8_t rhport)
 {
     (void)rhport;
+
+    // 1. Enter SE0 (Reset) mode
+    // Based on hardware documentation, phy_opmode = 2 (binary 10) drives the lines to SE0.
+    // We also ensure pulldowns are active and SOF is disabled during reset.
+    USB_HOST->CTRL.bits.phy_opmode = 2;
+    USB_HOST->CTRL.bits.enable_sof = 0;
+    USB_HOST->CTRL.bits.phy_termselect = 0;
+    USB_HOST->CTRL.bits.phy_xcvrselect = 0;
 }
 
 // Complete bus reset sequence, may be required by some controllers
 void hcd_port_reset_end(uint8_t rhport)
 {
     (void)rhport;
+
+    // 1. Return to Normal Operation mode
+    // Setting phy_opmode back to 0 (binary 00) stops driving SE0.
+    USB_HOST->CTRL.bits.phy_opmode = 0;
+
+    // 2. Re-enable termination and select Full Speed for the root hub
+    USB_HOST->CTRL.bits.phy_termselect = 1;
+    USB_HOST->CTRL.bits.phy_xcvrselect = 1;
+
+    // 3. Flush the FIFO to ensure we start with a clean state for enumeration
+    USB_HOST->CTRL.bits.tx_flush = 1;
 }
 
 // Get port link speed
 tusb_speed_t hcd_port_speed_get(uint8_t rhport)
 {
     (void)rhport;
+
+    // Read the linestate from the status register
+    // Based on your pal: bit 0 is D+ and bit 1 is D-
+    uint32_t line_state = USB_HOST->STATUS.bits.linestate;
+
+    // Check bit 0 (D+). If high, it is a Full Speed device.
+    if (line_state & 0x01)
+    {
+        return TUSB_SPEED_FULL;
+    }
+
+    // Check bit 1 (D-). If high, it is a Low Speed device.
+    if (line_state & 0x02)
+    {
+        return TUSB_SPEED_LOW;
+    }
+
+    // Default to Full Speed if state is ambiguous
     return TUSB_SPEED_FULL;
 }
 
